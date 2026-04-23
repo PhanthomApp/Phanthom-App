@@ -1,10 +1,10 @@
-function App() {
-  return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h1>PHANTHOM Business App</h1>
-      <p>Your app is live and working.</p>
-    </div>
-  );
-}
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.jsx";
+import "./styles.css";
 
-export default App;
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
