@@ -39,4 +39,4 @@ npm run build
 
 ## Notes
 
-This MVP stores data in browser local storage. To support multi-device sync, authentication, and database storage, add a backend in a later phase.
+This MVP stores data in browser local storage. To support multi-device sync, authentication, and database storage, add a backend in a later phase. update
