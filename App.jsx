@@ -276,15 +276,58 @@ function App() {
       .map((line) => `${line.item} | Qty: ${line.qty} | Unit: ${formatMoney(line.price)} | Total: ${formatMoney(line.qty * line.price)}`)
       .join("\n");
 
-    const text = `${state.business.name}\n${state.business.slogan}\n${state.business.address}\n\nINVOICE: ${order.invoiceNumber}\nRECEIPT: ${order.receiptNumber}\nORDER: ${order.orderNumber}\n\nCustomer: ${order.customerName}\nPhone: ${order.phone || "N/A"}\nDate: ${order.date}\nPayment Method: ${order.paymentMethod}\n\n${lines}\n\nOrder Total: ${formatMoney(totals.subtotal)}\nAmount Paid: ${formatMoney(totals.paid)}\nRemaining Balance: ${formatMoney(totals.balance)}\nStatus: ${totals.status}`;
+    const text = `${state.business.name}
+${state.business.slogan}
+${state.business.address}
+
+INVOICE: ${order.invoiceNumber}
+RECEIPT: ${order.receiptNumber}
+ORDER: ${order.orderNumber}
+
+Customer: ${order.customerName}
+Phone: ${order.phone || "N/A"}
+Date: ${order.date}
+Payment Method: ${order.paymentMethod}
+
+${lines}
+
+Order Total: ${formatMoney(totals.subtotal)}
+Amount Paid: ${formatMoney(totals.paid)}
+Remaining Balance: ${formatMoney(totals.balance)}
+Status: ${totals.status}`;
+
     navigator.clipboard.writeText(text).catch(() => {});
   }
 
   function whatsappLink(order) {
     const totals = calcTotals(order);
     const lines = order.items.map((line) => `- ${line.item} x${line.qty} @ ${formatMoney(line.price)}`).join("\n");
-    const text = `Hello ${order.customerName},\n\nInvoice: ${order.invoiceNumber}\nReceipt: ${order.receiptNumber}\nOrder: ${order.orderNumber}\n\nItems:\n${lines}\n\nTotal: ${formatMoney(totals.subtotal)}\nPaid: ${formatMoney(totals.paid)}\nBalance: ${formatMoney(totals.balance)}\nStatus: ${totals.status}\n\n- ${state.business.name}`;
+    const text = `Hello ${order.customerName},
+
+Invoice: ${order.invoiceNumber}
+Receipt: ${order.receiptNumber}
+Order: ${order.orderNumber}
+
+Items:
+${lines}
+
+Total: ${formatMoney(totals.subtotal)}
+Paid: ${formatMoney(totals.paid)}
+Balance: ${formatMoney(totals.balance)}
+Status: ${totals.status}
+
+- ${state.business.name}`;
     return `https://wa.me/${sanitizePhone(order.phone || state.business.whatsapp)}?text=${encodeURIComponent(text)}`;
+  }
+
+  function leadWhatsappLink() {
+    const hasData = lead.name || lead.phone || lead.service || lead.note;
+    if (!hasData) {
+      return `https://wa.me/${sanitizePhone(state.business.whatsapp)}`;
+    }
+
+    const text = `Hello PHANTHOM, my name is ${lead.name || "not provided"}. My phone is ${lead.phone || "not provided"}. I need ${lead.service || "a service"}. Notes: ${lead.note || "none"}.`;
+    return `https://wa.me/${sanitizePhone(state.business.whatsapp)}?text=${encodeURIComponent(text)}`;
   }
 
   return (
@@ -331,8 +374,12 @@ function App() {
         <div className="topbar">
           <div className="brand">PHANTHOM Official</div>
           <div className="modeRow">
-            <button className={mode === "public" ? "modeBtn active" : "modeBtn"} onClick={() => setMode("public")}>Public View</button>
-            <button className={mode === "admin" ? "modeBtn active" : "modeBtn"} onClick={() => setMode("admin")}>Admin View</button>
+            <button className={mode === "public" ? "modeBtn active" : "modeBtn"} onClick={() => setMode("public")}>
+              Public View
+            </button>
+            <button className={mode === "admin" ? "modeBtn active" : "modeBtn"} onClick={() => setMode("admin")}>
+              Admin View
+            </button>
           </div>
         </div>
 
@@ -346,8 +393,12 @@ function App() {
                   {state.business.heroText}
                 </p>
                 <div className="btnRow" style={{ marginTop: 18 }}>
-                  <button className="btn" onClick={() => document.getElementById("services")?.scrollIntoView({ behavior: "smooth" })}>Explore Services</button>
-                  <a className="ghostBtn" href={`https://wa.me/${sanitizePhone(state.business.whatsapp)}`} target="_blank" rel="noreferrer">Order on WhatsApp</a>
+                  <button className="btn" onClick={() => document.getElementById("services")?.scrollIntoView({ behavior: "smooth" })}>
+                    Explore Services
+                  </button>
+                  <a className="ghostBtn" href={`https://wa.me/${sanitizePhone(state.business.whatsapp)}`} target="_blank" rel="noreferrer">
+                    Order on WhatsApp
+                  </a>
                 </div>
               </div>
               <div className="statGrid" style={{ position: "relative", zIndex: 1 }}>
@@ -381,9 +432,7 @@ function App() {
                 <div className="testimonialGrid">
                   {state.testimonials.map((item) => (
                     <div key={item.id} className="testimonial">
-                      <p style={{ lineHeight: 1.6, marginTop: 0 }}>
-                        “{item.text}”
-                      </p>
+                      <p style={{ lineHeight: 1.6, marginTop: 0 }}>“{item.text}”</p>
                       <strong>{item.name}</strong>
                       <div className="muted small">{item.role}</div>
                     </div>
@@ -413,14 +462,7 @@ function App() {
                     <label>Notes</label>
                     <textarea value={lead.note} onChange={(e) => setLead((p) => ({ ...p, note: e.target.value }))} />
                   </div>
-                  <a
-                    className="btn"
-                    href={`https://wa.me/${sanitizePhone(state.business.whatsapp)}?text=${encodeURIComponent(
-                      `Hello PHANTHOM, my name is ${lead.name || ""}. My phone is ${lead.phone || ""}. I need ${lead.service || "a service"}. Notes: ${lead.note || "none"}.`
-                    )}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                  <a className="btn" href={leadWhatsappLink()} target="_blank" rel="noreferrer">
                     Send Inquiry
                   </a>
                 </div>
@@ -433,7 +475,9 @@ function App() {
                   <h2 style={{ margin: 0 }}>Ready to place your order?</h2>
                   <p className="muted" style={{ marginTop: 10 }}>Fast response, branded presentation, and a cleaner order experience.</p>
                 </div>
-                <a className="btn" href={`https://wa.me/${sanitizePhone(state.business.whatsapp)}`} target="_blank" rel="noreferrer">Chat on WhatsApp</a>
+                <a className="btn" href={`https://wa.me/${sanitizePhone(state.business.whatsapp)}`} target="_blank" rel="noreferrer">
+                  Chat on WhatsApp
+                </a>
               </div>
             </section>
           </div>
@@ -600,7 +644,9 @@ function App() {
 
                       <div className="btnRow" style={{ marginTop: 16 }}>
                         <button className="btn" onClick={() => copyOrderText(selectedOrder)}>Copy Invoice Text</button>
-                        <a className="ghostBtn" href={whatsappLink(selectedOrder)} target="_blank" rel="noreferrer">Send via WhatsApp</a>
+                        <a className="ghostBtn" href={whatsappLink(selectedOrder)} target="_blank" rel="noreferrer">
+                          Send via WhatsApp
+                        </a>
                       </div>
                     </div>
                   )}
