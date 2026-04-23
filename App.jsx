@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 
-const STORAGE_KEY = "phanthom-public-admin-v1";
+const STORAGE_KEY = "phanthom-public-admin-v2";
+const WHATSAPP_NUMBER = "5978363552";
+const BASE_COMPLETED_ORDERS = 38;
 
 const defaultServices = [
   {
@@ -22,7 +24,7 @@ const defaultServices = [
     name: "Branding Design",
     category: "Design",
     price: 1500,
-    description: "Logo cleanup, graphics, promo visuals and packaging support.",
+    description: "Logo cleanup, social visuals, promo graphics and packaging support.",
   },
   {
     id: "svc-4",
@@ -31,6 +33,40 @@ const defaultServices = [
     price: 0,
     description: "Custom quotes for events, teams, resellers and large streetwear batches.",
   },
+];
+
+const defaultProducts = [
+  {
+    id: "prd-1",
+    name: "PHANTHOM Signature Tee",
+    price: 750,
+    tag: "Best Seller",
+    image:
+      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "prd-2",
+    name: "Oversized Street Drop",
+    price: 850,
+    tag: "Oversized",
+    image:
+      "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "prd-3",
+    name: "Back Print Statement Tee",
+    price: 800,
+    tag: "New Drop",
+    image:
+      "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1200&q=80",
+  },
+];
+
+const defaultGallery = [
+  "https://images.unsplash.com/photo-1523398002811-999ca8dec234?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80",
 ];
 
 const defaultTestimonials = [
@@ -59,15 +95,17 @@ const defaultState = {
     name: "PHANTHOM Official",
     slogan: "The Authorized Crew.",
     address: "14 Vulcanusstraat, Paramaribo",
-    phone: "+597",
-    whatsapp: "5970000000",
+    phone: "+597 8363552",
+    whatsapp: WHATSAPP_NUMBER,
     currency: "SRD",
-    heroTitle: "Streetwear Printing, Branding & Order Management",
+    heroTitle: "Streetwear Storefront, Printing & Branding That Looks Serious.",
     heroText:
-      "Custom apparel, labels, branding visuals and a cleaner order experience for PHANTHOM customers.",
+      "Premium apparel presentation, fast ordering, bold visuals, and a cleaner PHANTHOM customer experience.",
   },
   services: defaultServices,
   testimonials: defaultTestimonials,
+  gallery: defaultGallery,
+  products: defaultProducts,
   orders: [],
   counters: { order: 1, invoice: 1, receipt: 1 },
 };
@@ -205,6 +243,12 @@ function App() {
     }));
   }
 
+  function applyProduct(product) {
+    setMode("admin");
+    setAdminTab("dashboard");
+    applyService({ name: product.name, price: product.price });
+  }
+
   function resetForm() {
     setForm({
       customerName: "",
@@ -276,56 +320,20 @@ function App() {
       .map((line) => `${line.item} | Qty: ${line.qty} | Unit: ${formatMoney(line.price)} | Total: ${formatMoney(line.qty * line.price)}`)
       .join("\n");
 
-    const text = `${state.business.name}
-${state.business.slogan}
-${state.business.address}
-
-INVOICE: ${order.invoiceNumber}
-RECEIPT: ${order.receiptNumber}
-ORDER: ${order.orderNumber}
-
-Customer: ${order.customerName}
-Phone: ${order.phone || "N/A"}
-Date: ${order.date}
-Payment Method: ${order.paymentMethod}
-
-${lines}
-
-Order Total: ${formatMoney(totals.subtotal)}
-Amount Paid: ${formatMoney(totals.paid)}
-Remaining Balance: ${formatMoney(totals.balance)}
-Status: ${totals.status}`;
-
+    const text = `${state.business.name}\n${state.business.slogan}\n${state.business.address}\n\nINVOICE: ${order.invoiceNumber}\nRECEIPT: ${order.receiptNumber}\nORDER: ${order.orderNumber}\n\nCustomer: ${order.customerName}\nPhone: ${order.phone || "N/A"}\nDate: ${order.date}\nPayment Method: ${order.paymentMethod}\n\n${lines}\n\nOrder Total: ${formatMoney(totals.subtotal)}\nAmount Paid: ${formatMoney(totals.paid)}\nRemaining Balance: ${formatMoney(totals.balance)}\nStatus: ${totals.status}`;
     navigator.clipboard.writeText(text).catch(() => {});
   }
 
   function whatsappLink(order) {
     const totals = calcTotals(order);
     const lines = order.items.map((line) => `- ${line.item} x${line.qty} @ ${formatMoney(line.price)}`).join("\n");
-    const text = `Hello ${order.customerName},
-
-Invoice: ${order.invoiceNumber}
-Receipt: ${order.receiptNumber}
-Order: ${order.orderNumber}
-
-Items:
-${lines}
-
-Total: ${formatMoney(totals.subtotal)}
-Paid: ${formatMoney(totals.paid)}
-Balance: ${formatMoney(totals.balance)}
-Status: ${totals.status}
-
-- ${state.business.name}`;
+    const text = `Hello ${order.customerName},\n\nInvoice: ${order.invoiceNumber}\nReceipt: ${order.receiptNumber}\nOrder: ${order.orderNumber}\n\nItems:\n${lines}\n\nTotal: ${formatMoney(totals.subtotal)}\nPaid: ${formatMoney(totals.paid)}\nBalance: ${formatMoney(totals.balance)}\nStatus: ${totals.status}\n\n- ${state.business.name}`;
     return `https://wa.me/${sanitizePhone(order.phone || state.business.whatsapp)}?text=${encodeURIComponent(text)}`;
   }
 
   function leadWhatsappLink() {
     const hasData = lead.name || lead.phone || lead.service || lead.note;
-    if (!hasData) {
-      return `https://wa.me/${sanitizePhone(state.business.whatsapp)}`;
-    }
-
+    if (!hasData) return `https://wa.me/${sanitizePhone(state.business.whatsapp)}`;
     const text = `Hello PHANTHOM, my name is ${lead.name || "not provided"}. My phone is ${lead.phone || "not provided"}. I need ${lead.service || "a service"}. Notes: ${lead.note || "none"}.`;
     return `https://wa.me/${sanitizePhone(state.business.whatsapp)}?text=${encodeURIComponent(text)}`;
   }
@@ -333,53 +341,63 @@ Status: ${totals.status}
   return (
     <div style={{ minHeight: "100vh", background: "#050505", color: "#fff" }}>
       <style>{`
-        *{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:#050505} a{text-decoration:none}
-        .shell{max-width:1320px;margin:0 auto;padding:24px}
-        .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
-        .brand{font-weight:900;letter-spacing:.04em;font-size:1.1rem}
+        *{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:#050505;color:#fff}
+        a{text-decoration:none;color:inherit} button,input,select,textarea{font:inherit}
+        .shell{max-width:1400px;margin:0 auto;padding:24px}
+        .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px;position:sticky;top:0;z-index:20;background:rgba(5,5,5,.82);backdrop-filter:blur(14px);padding:12px 0}
+        .brandWrap{display:flex;align-items:center;gap:14px}.logoMark{width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,#ffd400,#f0b400 55%,#fff2a8);color:#000;display:grid;place-items:center;font-size:1.8rem;font-weight:900;box-shadow:0 0 32px rgba(255,212,0,.25)}
+        .brandText{display:grid;gap:2px}.brandTitle{font-weight:900;letter-spacing:.04em;font-size:1.25rem}.brandSub{color:#d0d0d0;font-size:.9rem}
         .modeRow,.navRow,.btnRow,.pillRow{display:flex;flex-wrap:wrap;gap:10px}
-        .modeBtn,.tabBtn,.pill,.btn,.ghostBtn{border:1px solid #2b2b2b;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer;transition:.25s ease}
+        .modeBtn,.tabBtn,.pill,.btn,.ghostBtn{border:1px solid #3a3200;border-radius:14px;padding:12px 16px;font-weight:800;cursor:pointer;transition:.28s ease}
         .modeBtn,.tabBtn,.ghostBtn,.pill{background:#111;color:#fff}
-        .modeBtn.active,.tabBtn.active,.btn{background:#fff;color:#000}
-        .btn.danger{background:#df5b5b;color:#fff;border-color:#df5b5b}
-        .btn.dark{background:#171717;color:#fff;border-color:#2b2b2b}
-        .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:20px;padding:28px;border:1px solid #202020;border-radius:28px;background:radial-gradient(circle at top right,#151515 0%,#090909 55%,#050505 100%);overflow:hidden;position:relative}
-        .hero:before{content:"";position:absolute;inset:-20% auto auto -10%;width:260px;height:260px;background:rgba(255,255,255,.07);filter:blur(60px);border-radius:999px;animation:float 7s ease-in-out infinite}
-        .heroTag{display:inline-block;padding:8px 12px;border:1px solid #2a2a2a;border-radius:999px;background:#101010;margin-bottom:16px;color:#cfcfcf}
-        .hero h1{font-size:3rem;line-height:1.02;margin:0 0 14px;max-width:700px}
-        .muted{color:#b7b7b7}.small{font-size:.85rem}
-        .grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:20px}
-        .card{background:#0d0d0d;border:1px solid #202020;border-radius:24px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-        .statGrid{display:grid;grid-template-columns:1fr;gap:14px}
-        .statMini,.serviceCard,.testimonial,.preview,.lineCard,.orderCard,.totalsBox{background:#121212;border:1px solid #242424;border-radius:18px;padding:16px}
-        .statNum{font-size:1.5rem;font-weight:800}
-        .sectionTitle{font-size:2rem;margin:0 0 14px}
-        .serviceGrid,.testimonialGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-        .testimonial{position:relative;animation:rise .7s ease both}.testimonial:nth-child(2){animation-delay:.08s}.testimonial:nth-child(3){animation-delay:.16s}
-        .serviceCard{transition:transform .25s ease,border-color .25s ease}.serviceCard:hover{transform:translateY(-4px);border-color:#444}
-        .cta{margin-top:20px;padding:22px;border:1px solid #202020;border-radius:24px;background:linear-gradient(135deg,#101010,#070707)}
+        .modeBtn:hover,.tabBtn:hover,.ghostBtn:hover,.pill:hover{transform:translateY(-2px);border-color:#ffd400;box-shadow:0 10px 30px rgba(255,212,0,.09)}
+        .modeBtn.active,.tabBtn.active,.btn{background:linear-gradient(135deg,#ffe15c,#ffd400 45%,#f2bc00);color:#000;border-color:#ffd400}
+        .btn.danger{background:#df5b5b;color:#fff;border-color:#df5b5b}.btn.dark{background:#171717;color:#fff;border-color:#2b2b2b}
+        .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:22px;padding:34px;border:1px solid #282200;border-radius:30px;background:radial-gradient(circle at top right,rgba(255,212,0,.2) 0%,rgba(20,20,20,.92) 32%,#050505 70%);overflow:hidden;position:relative}
+        .hero:before,.hero:after{content:"";position:absolute;border-radius:999px;filter:blur(70px);opacity:.45;pointer-events:none}.hero:before{width:260px;height:260px;left:-40px;top:-20px;background:#ffd400;animation:float 7s ease-in-out infinite}.hero:after{width:240px;height:240px;right:-20px;bottom:-60px;background:#fff3a0;animation:float 9s ease-in-out infinite reverse}
+        .heroTag{display:inline-block;padding:8px 14px;border:1px solid #4a3e00;border-radius:999px;background:rgba(255,212,0,.08);margin-bottom:16px;color:#ffe47f}
+        .hero h1{font-size:3.5rem;line-height:.98;margin:0 0 14px;max-width:760px}.hero p{max-width:680px}
+        .muted{color:#c5c5c5}.small{font-size:.84rem}
+        .grid2{display:grid;grid-template-columns:1.05fr .95fr;gap:20px}.split{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+        .card{background:linear-gradient(180deg,#0d0d0d,#090909);border:1px solid #252525;border-radius:26px;padding:24px;box-shadow:0 18px 60px rgba(0,0,0,.28)}
+        .statGrid{display:grid;grid-template-columns:1fr;gap:14px}.statMini,.serviceCard,.testimonial,.preview,.lineCard,.orderCard,.totalsBox,.productCard,.galleryCard{background:linear-gradient(180deg,#121212,#0d0d0d);border:1px solid #272727;border-radius:20px;padding:16px}
+        .statNum{font-size:1.6rem;font-weight:900}.sectionTitle{font-size:2rem;margin:0 0 14px}
+        .serviceGrid,.testimonialGrid,.productGrid,.galleryGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.productGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.galleryGrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+        .serviceCard,.productCard,.galleryCard,.testimonial{transition:transform .28s ease,border-color .28s ease,box-shadow .28s ease}.serviceCard:hover,.productCard:hover,.galleryCard:hover,.testimonial:hover{transform:translateY(-6px);border-color:#ffd400;box-shadow:0 16px 50px rgba(255,212,0,.08)}
+        .productImage,.galleryImage{width:100%;object-fit:cover;border-radius:16px}.productImage{height:300px}.galleryImage{height:180px}
+        .tag{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:rgba(255,212,0,.1);color:#ffe36f;border:1px solid #5a4b00;font-size:.8rem;font-weight:700}
+        .testimonial{position:relative;animation:rise .8s ease both}.testimonial:nth-child(2){animation-delay:.1s}.testimonial:nth-child(3){animation-delay:.2s}
+        .cta{margin-top:20px;padding:26px;border:1px solid #352c00;border-radius:26px;background:linear-gradient(135deg,rgba(255,212,0,.12),#090909 52%,#050505);position:relative;overflow:hidden}
+        .cta:before{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:999px;background:rgba(255,212,0,.14);filter:blur(40px)}
         .formGrid,.lineGrid{display:grid;gap:14px}.formGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.lineGrid{grid-template-columns:2fr .7fr 1fr 110px;align-items:end}
-        input,select,textarea{width:100%;margin-top:8px;background:#080808;color:#fff;border:1px solid #2a2a2a;border-radius:12px;padding:12px} textarea{min-height:110px;resize:vertical}
+        input,select,textarea{width:100%;margin-top:8px;background:#080808;color:#fff;border:1px solid #2a2a2a;border-radius:14px;padding:12px} textarea{min-height:110px;resize:vertical}
+        input:focus,select:focus,textarea:focus{outline:none;border-color:#ffd400;box-shadow:0 0 0 3px rgba(255,212,0,.12)}
         table{width:100%;border-collapse:collapse;margin:18px 0} th,td{border:1px solid #2a2a2a;padding:12px;text-align:left} th{background:#151515}
-        .rowBetween{display:flex;justify-content:space-between;align-items:center;gap:12px}.badge{padding:7px 10px;border:1px solid #2a2a2a;border-radius:999px;background:#1b1b1b;font-size:.8rem}
+        .rowBetween{display:flex;justify-content:space-between;align-items:center;gap:12px}.badge{padding:7px 10px;border:1px solid #4e4100;border-radius:999px;background:rgba(255,212,0,.08);color:#ffe36f;font-size:.8rem}
         .stack{display:grid;gap:14px}.errorBox{background:rgba(223,91,91,.12);border:1px solid rgba(223,91,91,.4);padding:14px;border-radius:14px;color:#ffc9c9}
-        .publicSection{margin-top:20px}.split{display:grid;grid-template-columns:1fr 1fr;gap:20px}.fadeIn{animation:fade .55s ease}.leadForm{display:grid;gap:12px}
+        .fadeIn{animation:fade .55s ease}.leadForm{display:grid;gap:12px}.adminBanner{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+        .quickContact{display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:18px;border:1px solid #4d4000;background:rgba(255,212,0,.08)}
+        .photoNote{margin-top:8px;color:#d0d0d0;font-size:.9rem}
         @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-        @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+        @keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
         @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(18px)}}
-        @media (max-width:980px){.hero,.grid2,.split,.formGrid,.lineGrid,.serviceGrid,.testimonialGrid{grid-template-columns:1fr}.hero h1{font-size:2.2rem}}
+        @media (max-width:1100px){.hero,.grid2,.split,.formGrid,.lineGrid,.serviceGrid,.testimonialGrid,.productGrid,.galleryGrid,.adminBanner{grid-template-columns:1fr}.hero h1{font-size:2.4rem}}
       `}</style>
 
       <div className="shell fadeIn">
         <div className="topbar">
-          <div className="brand">PHANTHOM Official</div>
+          <div className="brandWrap">
+            <div className="logoMark">P</div>
+            <div className="brandText">
+              <div className="brandTitle">PHANTHOM Official</div>
+              <div className="brandSub">The Authorized Crew.</div>
+            </div>
+          </div>
+
           <div className="modeRow">
-            <button className={mode === "public" ? "modeBtn active" : "modeBtn"} onClick={() => setMode("public")}>
-              Public View
-            </button>
-            <button className={mode === "admin" ? "modeBtn active" : "modeBtn"} onClick={() => setMode("admin")}>
-              Admin View
-            </button>
+            <a className="ghostBtn" href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer">wa.me/{WHATSAPP_NUMBER}</a>
+            <button className={mode === "public" ? "modeBtn active" : "modeBtn"} onClick={() => setMode("public")}>Public View</button>
+            <button className={mode === "admin" ? "modeBtn active" : "modeBtn"} onClick={() => setMode("admin")}>Admin View</button>
           </div>
         </div>
 
@@ -387,29 +405,53 @@ Status: ${totals.status}
           <div className="stack fadeIn">
             <section className="hero">
               <div style={{ position: "relative", zIndex: 1 }}>
-                <div className="heroTag">THE AUTHORIZED CREW</div>
+                <div className="heroTag">BLACK • YELLOW • WHITE</div>
                 <h1>{state.business.heroTitle}</h1>
-                <p className="muted" style={{ maxWidth: 650, fontSize: "1.05rem", lineHeight: 1.65 }}>
+                <p className="muted" style={{ fontSize: "1.05rem", lineHeight: 1.65 }}>
                   {state.business.heroText}
                 </p>
                 <div className="btnRow" style={{ marginTop: 18 }}>
-                  <button className="btn" onClick={() => document.getElementById("services")?.scrollIntoView({ behavior: "smooth" })}>
-                    Explore Services
-                  </button>
-                  <a className="ghostBtn" href={`https://wa.me/${sanitizePhone(state.business.whatsapp)}`} target="_blank" rel="noreferrer">
-                    Order on WhatsApp
-                  </a>
+                  <button className="btn" onClick={() => document.getElementById("store")?.scrollIntoView({ behavior: "smooth" })}>Shop The Store</button>
+                  <button className="ghostBtn" onClick={() => document.getElementById("gallery")?.scrollIntoView({ behavior: "smooth" })}>View Photo Section</button>
                 </div>
               </div>
+
               <div className="statGrid" style={{ position: "relative", zIndex: 1 }}>
-                <div className="statMini"><div className="muted">Orders Completed</div><div className="statNum">{state.orders.length}</div></div>
+                <div className="statMini"><div className="muted">Completed Orders</div><div className="statNum">{BASE_COMPLETED_ORDERS + state.orders.length}</div></div>
                 <div className="statMini"><div className="muted">Core Services</div><div className="statNum">{state.services.length}</div></div>
-                <div className="statMini"><div className="muted">Location</div><div className="statNum" style={{ fontSize: "1.05rem" }}>Paramaribo, Suriname</div></div>
+                <div className="statMini"><div className="muted">WhatsApp Orders</div><div className="statNum">+597 8363552</div></div>
+                <div className="quickContact">
+                  <div className="logoMark" style={{ width: 46, height: 46, fontSize: "1.3rem" }}>W</div>
+                  <div>
+                    <strong>Quick Order Contact</strong>
+                    <div className="muted small">wa.me/{WHATSAPP_NUMBER}</div>
+                  </div>
+                </div>
               </div>
             </section>
 
-            <section id="services" className="publicSection card">
-              <div className="rowBetween"><h2 className="sectionTitle">Services</h2><span className="badge">Customer View</span></div>
+            <section id="store" className="card">
+              <div className="rowBetween"><h2 className="sectionTitle">T-Shirt Store</h2><span className="tag">Storefront Feel</span></div>
+              <div className="productGrid">
+                {state.products.map((product) => (
+                  <div key={product.id} className="productCard">
+                    <img className="productImage" src={product.image} alt={product.name} />
+                    <div style={{ marginTop: 14 }} className="rowBetween">
+                      <strong>{product.name}</strong>
+                      <span className="tag">{product.tag}</span>
+                    </div>
+                    <p className="muted" style={{ margin: "10px 0" }}>{formatMoney(product.price)}</p>
+                    <div className="btnRow">
+                      <button className="btn" onClick={() => applyProduct(product)}>Add To Order</button>
+                      <a className="ghostBtn" href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hello PHANTHOM, I want to order ${product.name}.`)}`} target="_blank" rel="noreferrer">WhatsApp</a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section id="services" className="card">
+              <div className="rowBetween"><h2 className="sectionTitle">Services</h2><span className="tag">Customer View</span></div>
               <div className="serviceGrid">
                 {state.services.map((service) => (
                   <div key={service.id} className="serviceCard">
@@ -424,6 +466,18 @@ Status: ${totals.status}
                   </div>
                 ))}
               </div>
+            </section>
+
+            <section id="gallery" className="card">
+              <div className="rowBetween"><h2 className="sectionTitle">Photo Section</h2><span className="tag">Visual Showcase</span></div>
+              <div className="galleryGrid">
+                {state.gallery.map((src, index) => (
+                  <div key={src} className="galleryCard">
+                    <img className="galleryImage" src={src} alt={`Gallery ${index + 1}`} />
+                  </div>
+                ))}
+              </div>
+              <div className="photoNote">Replace these sample photos with your real PHANTHOM shirt photos later.</div>
             </section>
 
             <section className="split">
@@ -443,14 +497,8 @@ Status: ${totals.status}
               <div className="card">
                 <h2 className="sectionTitle">Quick Order Lead</h2>
                 <div className="leadForm">
-                  <div>
-                    <label>Name</label>
-                    <input value={lead.name} onChange={(e) => setLead((p) => ({ ...p, name: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label>Phone</label>
-                    <input value={lead.phone} onChange={(e) => setLead((p) => ({ ...p, phone: e.target.value }))} />
-                  </div>
+                  <div><label>Name</label><input value={lead.name} onChange={(e) => setLead((p) => ({ ...p, name: e.target.value }))} /></div>
+                  <div><label>Phone</label><input value={lead.phone} onChange={(e) => setLead((p) => ({ ...p, phone: e.target.value }))} /></div>
                   <div>
                     <label>Service Needed</label>
                     <select value={lead.service} onChange={(e) => setLead((p) => ({ ...p, service: e.target.value }))}>
@@ -458,13 +506,8 @@ Status: ${totals.status}
                       {state.services.map((service) => <option key={service.id}>{service.name}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label>Notes</label>
-                    <textarea value={lead.note} onChange={(e) => setLead((p) => ({ ...p, note: e.target.value }))} />
-                  </div>
-                  <a className="btn" href={leadWhatsappLink()} target="_blank" rel="noreferrer">
-                    Send Inquiry
-                  </a>
+                  <div><label>Notes</label><textarea value={lead.note} onChange={(e) => setLead((p) => ({ ...p, note: e.target.value }))} /></div>
+                  <a className="btn" href={leadWhatsappLink()} target="_blank" rel="noreferrer">Send Inquiry</a>
                 </div>
               </div>
             </section>
@@ -473,11 +516,9 @@ Status: ${totals.status}
               <div className="rowBetween" style={{ alignItems: "center", flexWrap: "wrap" }}>
                 <div>
                   <h2 style={{ margin: 0 }}>Ready to place your order?</h2>
-                  <p className="muted" style={{ marginTop: 10 }}>Fast response, branded presentation, and a cleaner order experience.</p>
+                  <p className="muted" style={{ marginTop: 10 }}>Bold presentation. Better visuals. Cleaner ordering. Built for PHANTHOM.</p>
                 </div>
-                <a className="btn" href={`https://wa.me/${sanitizePhone(state.business.whatsapp)}`} target="_blank" rel="noreferrer">
-                  Chat on WhatsApp
-                </a>
+                <a className="btn" href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer">Chat on WhatsApp</a>
               </div>
             </section>
           </div>
@@ -485,6 +526,13 @@ Status: ${totals.status}
 
         {mode === "admin" && (
           <div className="stack fadeIn">
+            <div className="adminBanner">
+              <div className="statMini"><div className="muted">Completed Orders</div><div className="statNum">{BASE_COMPLETED_ORDERS + state.orders.length}</div></div>
+              <div className="statMini"><div className="muted">Revenue</div><div className="statNum">{formatMoney(stats.revenue)}</div></div>
+              <div className="statMini"><div className="muted">Outstanding</div><div className="statNum">{formatMoney(stats.outstanding)}</div></div>
+              <div className="statMini"><div className="muted">Contact</div><div className="statNum" style={{ fontSize: "1rem" }}>+597 8363552</div></div>
+            </div>
+
             <div className="navRow">
               {[
                 ["dashboard", "Dashboard"],
@@ -492,9 +540,7 @@ Status: ${totals.status}
                 ["orders", "Orders"],
                 ["settings", "Settings"],
               ].map(([key, label]) => (
-                <button key={key} className={adminTab === key ? "tabBtn active" : "tabBtn"} onClick={() => setAdminTab(key)}>
-                  {label}
-                </button>
+                <button key={key} className={adminTab === key ? "tabBtn active" : "tabBtn"} onClick={() => setAdminTab(key)}>{label}</button>
               ))}
             </div>
 
@@ -614,10 +660,13 @@ Status: ${totals.status}
                   {selectedOrder && (
                     <div className="preview">
                       <div className="rowBetween" style={{ alignItems: "flex-start" }}>
-                        <div>
-                          <h3 style={{ marginTop: 0 }}>{state.business.name}</h3>
-                          <p className="muted">{state.business.slogan}</p>
-                          <p className="muted">{state.business.address}</p>
+                        <div className="brandWrap">
+                          <div className="logoMark" style={{ width: 52, height: 52, fontSize: "1.5rem" }}>P</div>
+                          <div>
+                            <h3 style={{ margin: 0 }}>{state.business.name}</h3>
+                            <p className="muted">{state.business.slogan}</p>
+                            <p className="muted">{state.business.address}</p>
+                          </div>
                         </div>
                         <div style={{ textAlign: "right" }}>
                           <div><strong>Invoice:</strong> {selectedOrder.invoiceNumber}</div>
@@ -644,9 +693,7 @@ Status: ${totals.status}
 
                       <div className="btnRow" style={{ marginTop: 16 }}>
                         <button className="btn" onClick={() => copyOrderText(selectedOrder)}>Copy Invoice Text</button>
-                        <a className="ghostBtn" href={whatsappLink(selectedOrder)} target="_blank" rel="noreferrer">
-                          Send via WhatsApp
-                        </a>
+                        <a className="ghostBtn" href={whatsappLink(selectedOrder)} target="_blank" rel="noreferrer">Send via WhatsApp</a>
                       </div>
                     </div>
                   )}
@@ -657,7 +704,12 @@ Status: ${totals.status}
             {adminTab === "settings" && (
               <div className="card">
                 <h2 className="sectionTitle">Settings</h2>
-                <p className="muted">This mode is the admin dashboard. Customers should mostly use the Public View section.</p>
+                <div className="stack">
+                  <div className="statMini"><div className="muted">Business Address</div><div className="statNum" style={{ fontSize: "1rem" }}>{state.business.address}</div></div>
+                  <div className="statMini"><div className="muted">WhatsApp</div><div className="statNum" style={{ fontSize: "1rem" }}>wa.me/{WHATSAPP_NUMBER}</div></div>
+                  <p className="muted">This is the admin dashboard. Customers should mostly use Public View.</p>
+                  <p className="muted">For the exact PHANTHOM logo in the browser tab/favicon, upload the real logo file and replace the default app icon in your repo.</p>
+                </div>
               </div>
             )}
           </div>
