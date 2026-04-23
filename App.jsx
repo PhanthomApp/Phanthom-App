@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-const STORAGE_KEY = "phanthom-public-admin-v2";
+const STORAGE_KEY = "phanthom-public-admin-v3";
 const WHATSAPP_NUMBER = "5978363552";
 const BASE_COMPLETED_ORDERS = 38;
 
@@ -33,6 +33,27 @@ const defaultServices = [
     price: 0,
     description: "Custom quotes for events, teams, resellers and large streetwear batches.",
   },
+  {
+    id: "svc-5",
+    name: "Tumblers",
+    category: "Drinkware",
+    price: 300,
+    description: "Custom tumblers for branding, gifts and business orders.",
+  },
+  {
+    id: "svc-6",
+    name: "Clothing Sets",
+    category: "Apparel",
+    price: 1500,
+    description: "Matching tops and bottoms for styled drops and coordinated sets.",
+  },
+  {
+    id: "svc-7",
+    name: "Business Cards",
+    category: "Print",
+    price: 250,
+    description: "Clean branded business cards for businesses, creators and promos.",
+  },
 ];
 
 const defaultProducts = [
@@ -59,6 +80,30 @@ const defaultProducts = [
     tag: "New Drop",
     image:
       "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "prd-4",
+    name: "Custom Tumbler",
+    price: 300,
+    tag: "Popular",
+    image:
+      "https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "prd-5",
+    name: "Streetwear Set",
+    price: 1500,
+    tag: "Set",
+    image:
+      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "prd-6",
+    name: "Business Card Pack",
+    price: 250,
+    tag: "Business",
+    image:
+      "https://images.unsplash.com/photo-1586953208448-b95a79798f07?auto=format&fit=crop&w=1200&q=80",
   },
 ];
 
@@ -107,7 +152,8 @@ const defaultState = {
   gallery: defaultGallery,
   products: defaultProducts,
   orders: [],
-  counters: { order: 1, invoice: 1, receipt: 1 },
+  returnReceipts: [],
+  counters: { order: 1, invoice: 1, receipt: 1, returnReceipt: 1 },
 };
 
 function todayISO() {
@@ -162,6 +208,8 @@ function App() {
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [errors, setErrors] = useState([]);
   const [lead, setLead] = useState({ name: "", phone: "", service: "", note: "" });
+  const [serviceDraft, setServiceDraft] = useState({ name: "", category: "General", price: 0, description: "" });
+  const [returnForm, setReturnForm] = useState({ orderId: "", customerName: "", reason: "", refundAmount: 0, date: todayISO() });
 
   const [form, setForm] = useState({
     customerName: "",
@@ -213,12 +261,53 @@ function App() {
     );
   }, [state.orders]);
 
+  const selectedReturnOrder = useMemo(
+    () => state.orders.find((order) => order.id === returnForm.orderId) || null,
+    [state.orders, returnForm.orderId]
+  );
+
   function updateLine(id, field, value) {
     setForm((prev) => ({
       ...prev,
       items: prev.items.map((line) =>
         line.id === id ? { ...line, [field]: field === "item" ? value : Number(value) } : line
       ),
+    }));
+  }
+
+  function updateService(id, field, value) {
+    setState((prev) => ({
+      ...prev,
+      services: prev.services.map((service) =>
+        service.id === id
+          ? { ...service, [field]: field === "price" ? Number(value) : value }
+          : service
+      ),
+    }));
+  }
+
+  function addService() {
+    if (!serviceDraft.name.trim()) return;
+    setState((prev) => ({
+      ...prev,
+      services: [
+        ...prev.services,
+        {
+          id: `svc-${Date.now()}`,
+          name: serviceDraft.name,
+          category: serviceDraft.category,
+          price: Number(serviceDraft.price || 0),
+          description: serviceDraft.description,
+        },
+      ],
+    }));
+    setServiceDraft({ name: "", category: "General", price: 0, description: "" });
+  }
+
+  function removeService(id) {
+    setState((prev) => ({
+      ...prev,
+      services: prev.services.filter((service) => service.id !== id),
     }));
   }
 
@@ -299,6 +388,7 @@ function App() {
       ...prev,
       orders: [order, ...prev.orders],
       counters: {
+        ...prev.counters,
         order: prev.counters.order + 1,
         invoice: prev.counters.invoice + 1,
         receipt: prev.counters.receipt + 1,
@@ -307,6 +397,27 @@ function App() {
     setSelectedOrderId(order.id);
     resetForm();
     setAdminTab("orders");
+  }
+
+  function createReturnReceipt() {
+    if (!returnForm.customerName.trim() || !returnForm.orderId) return;
+
+    const receipt = {
+      id: `return-${Date.now()}`,
+      receiptNumber: makeNumber("PH-RET", state.counters.returnReceipt),
+      orderId: returnForm.orderId,
+      customerName: returnForm.customerName,
+      reason: returnForm.reason,
+      refundAmount: Number(returnForm.refundAmount || 0),
+      date: returnForm.date,
+    };
+
+    setState((prev) => ({
+      ...prev,
+      returnReceipts: [receipt, ...prev.returnReceipts],
+      counters: { ...prev.counters, returnReceipt: prev.counters.returnReceipt + 1 },
+    }));
+    setReturnForm({ orderId: "", customerName: "", reason: "", refundAmount: 0, date: todayISO() });
   }
 
   function deleteOrder(id) {
@@ -321,6 +432,11 @@ function App() {
       .join("\n");
 
     const text = `${state.business.name}\n${state.business.slogan}\n${state.business.address}\n\nINVOICE: ${order.invoiceNumber}\nRECEIPT: ${order.receiptNumber}\nORDER: ${order.orderNumber}\n\nCustomer: ${order.customerName}\nPhone: ${order.phone || "N/A"}\nDate: ${order.date}\nPayment Method: ${order.paymentMethod}\n\n${lines}\n\nOrder Total: ${formatMoney(totals.subtotal)}\nAmount Paid: ${formatMoney(totals.paid)}\nRemaining Balance: ${formatMoney(totals.balance)}\nStatus: ${totals.status}`;
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+
+  function copyReturnReceipt(receipt) {
+    const text = `${state.business.name}\nCUSTOMER RETURN RECEIPT\n${receipt.receiptNumber}\n\nCustomer: ${receipt.customerName}\nDate: ${receipt.date}\nOrder Ref: ${receipt.orderId}\nRefund Amount: ${formatMoney(receipt.refundAmount)}\nReason: ${receipt.reason || "Not specified"}\n\nAddress: ${state.business.address}\nWhatsApp: wa.me/${WHATSAPP_NUMBER}`;
     navigator.clipboard.writeText(text).catch(() => {});
   }
 
@@ -375,13 +491,13 @@ function App() {
         table{width:100%;border-collapse:collapse;margin:18px 0} th,td{border:1px solid #2a2a2a;padding:12px;text-align:left} th{background:#151515}
         .rowBetween{display:flex;justify-content:space-between;align-items:center;gap:12px}.badge{padding:7px 10px;border:1px solid #4e4100;border-radius:999px;background:rgba(255,212,0,.08);color:#ffe36f;font-size:.8rem}
         .stack{display:grid;gap:14px}.errorBox{background:rgba(223,91,91,.12);border:1px solid rgba(223,91,91,.4);padding:14px;border-radius:14px;color:#ffc9c9}
-        .fadeIn{animation:fade .55s ease}.leadForm{display:grid;gap:12px}.adminBanner{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+        .fadeIn{animation:fade .55s ease}.leadForm{display:grid;gap:12px}.adminBanner{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.settingsGrid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
         .quickContact{display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:18px;border:1px solid #4d4000;background:rgba(255,212,0,.08)}
         .photoNote{margin-top:8px;color:#d0d0d0;font-size:.9rem}
         @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
         @keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
         @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(18px)}}
-        @media (max-width:1100px){.hero,.grid2,.split,.formGrid,.lineGrid,.serviceGrid,.testimonialGrid,.productGrid,.galleryGrid,.adminBanner{grid-template-columns:1fr}.hero h1{font-size:2.4rem}}
+        @media (max-width:1100px){.hero,.grid2,.split,.formGrid,.lineGrid,.serviceGrid,.testimonialGrid,.productGrid,.galleryGrid,.adminBanner,.settingsGrid{grid-template-columns:1fr}.hero h1{font-size:2.4rem}}
       `}</style>
 
       <div className="shell fadeIn">
@@ -407,9 +523,7 @@ function App() {
               <div style={{ position: "relative", zIndex: 1 }}>
                 <div className="heroTag">BLACK • YELLOW • WHITE</div>
                 <h1>{state.business.heroTitle}</h1>
-                <p className="muted" style={{ fontSize: "1.05rem", lineHeight: 1.65 }}>
-                  {state.business.heroText}
-                </p>
+                <p className="muted" style={{ fontSize: "1.05rem", lineHeight: 1.65 }}>{state.business.heroText}</p>
                 <div className="btnRow" style={{ marginTop: 18 }}>
                   <button className="btn" onClick={() => document.getElementById("store")?.scrollIntoView({ behavior: "smooth" })}>Shop The Store</button>
                   <button className="ghostBtn" onClick={() => document.getElementById("gallery")?.scrollIntoView({ behavior: "smooth" })}>View Photo Section</button>
@@ -431,7 +545,7 @@ function App() {
             </section>
 
             <section id="store" className="card">
-              <div className="rowBetween"><h2 className="sectionTitle">T-Shirt Store</h2><span className="tag">Storefront Feel</span></div>
+              <div className="rowBetween"><h2 className="sectionTitle">Store</h2><span className="tag">T-Shirts • Tumblers • Sets • Cards</span></div>
               <div className="productGrid">
                 {state.products.map((product) => (
                   <div key={product.id} className="productCard">
@@ -477,7 +591,7 @@ function App() {
                   </div>
                 ))}
               </div>
-              <div className="photoNote">Replace these sample photos with your real PHANTHOM shirt photos later.</div>
+              <div className="photoNote">Replace these sample photos with your real PHANTHOM shirt, tumbler, set, and business card photos.</div>
             </section>
 
             <section className="split">
@@ -511,16 +625,6 @@ function App() {
                 </div>
               </div>
             </section>
-
-            <section className="cta">
-              <div className="rowBetween" style={{ alignItems: "center", flexWrap: "wrap" }}>
-                <div>
-                  <h2 style={{ margin: 0 }}>Ready to place your order?</h2>
-                  <p className="muted" style={{ marginTop: 10 }}>Bold presentation. Better visuals. Cleaner ordering. Built for PHANTHOM.</p>
-                </div>
-                <a className="btn" href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer">Chat on WhatsApp</a>
-              </div>
-            </section>
           </div>
         )}
 
@@ -536,9 +640,9 @@ function App() {
             <div className="navRow">
               {[
                 ["dashboard", "Dashboard"],
-                ["services", "Services"],
+                ["services", "Services & Prices"],
                 ["orders", "Orders"],
-                ["settings", "Settings"],
+                ["settings", "Settings & Returns"],
               ].map(([key, label]) => (
                 <button key={key} className={adminTab === key ? "tabBtn active" : "tabBtn"} onClick={() => setAdminTab(key)}>{label}</button>
               ))}
@@ -549,18 +653,13 @@ function App() {
                 <div className="card">
                   <h2 className="sectionTitle">Create Order / Invoice / Receipt</h2>
                   {errors.length > 0 && <div className="errorBox">{errors.map((e) => <div key={e}>{e}</div>)}</div>}
-
                   <div className="formGrid">
                     <div><label>Customer Name</label><input value={form.customerName} onChange={(e) => setForm((p) => ({ ...p, customerName: e.target.value }))} /></div>
                     <div><label>Phone</label><input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} /></div>
                     <div><label>Date</label><input type="date" value={form.date} onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))} /></div>
                     <div><label>Payment Method</label><select value={form.paymentMethod} onChange={(e) => setForm((p) => ({ ...p, paymentMethod: e.target.value }))}><option>Cash</option><option>Transfer</option><option>Mixed</option></select></div>
                   </div>
-
-                  <div className="pillRow" style={{ marginTop: 16 }}>
-                    {state.services.map((service) => <button key={service.id} className="pill" onClick={() => applyService(service)}>+ {service.name}</button>)}
-                  </div>
-
+                  <div className="pillRow" style={{ marginTop: 16 }}>{state.services.map((service) => <button key={service.id} className="pill" onClick={() => applyService(service)}>+ {service.name}</button>)}</div>
                   <div className="stack" style={{ marginTop: 16 }}>
                     {form.items.map((line, index) => (
                       <div key={line.id} className="lineCard">
@@ -573,21 +672,17 @@ function App() {
                       </div>
                     ))}
                   </div>
-
                   <div className="btnRow" style={{ marginTop: 16 }}><button className="btn dark" onClick={addLine}>Add Line</button></div>
-
                   <div className="formGrid" style={{ marginTop: 16 }}>
                     <div><label>Amount Paid</label><input type="number" min="0" value={form.amountPaid} onChange={(e) => setForm((p) => ({ ...p, amountPaid: Number(e.target.value) }))} /></div>
                     <div><label>Notes</label><textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} /></div>
                   </div>
-
                   <div className="totalsBox" style={{ marginTop: 16 }}>
                     <div className="rowBetween"><span>Total</span><strong>{formatMoney(formTotals.subtotal)}</strong></div>
                     <div className="rowBetween"><span>Paid</span><strong>{formatMoney(formTotals.paid)}</strong></div>
                     <div className="rowBetween"><span>Balance</span><strong>{formatMoney(formTotals.balance)}</strong></div>
                     <div className="rowBetween"><span>Status</span><strong>{formTotals.status}</strong></div>
                   </div>
-
                   <div className="btnRow" style={{ marginTop: 16 }}>
                     <button className="btn" onClick={saveOrder}>Save Order</button>
                     <button className="btn dark" onClick={resetForm}>Reset</button>
@@ -607,21 +702,33 @@ function App() {
             )}
 
             {adminTab === "services" && (
-              <div className="card">
-                <h2 className="sectionTitle">Admin Services View</h2>
-                <div className="serviceGrid">
-                  {state.services.map((service) => (
-                    <div key={service.id} className="serviceCard">
-                      <div className="rowBetween">
-                        <div>
-                          <strong>{service.name}</strong>
-                          <div className="muted small">{service.category}</div>
+              <div className="settingsGrid">
+                <div className="card">
+                  <h2 className="sectionTitle">Edit Services & Prices</h2>
+                  <div className="stack">
+                    {state.services.map((service) => (
+                      <div key={service.id} className="serviceCard">
+                        <div className="formGrid">
+                          <div><label>Name</label><input value={service.name} onChange={(e) => updateService(service.id, "name", e.target.value)} /></div>
+                          <div><label>Category</label><input value={service.category} onChange={(e) => updateService(service.id, "category", e.target.value)} /></div>
+                          <div><label>Price</label><input type="number" value={service.price} onChange={(e) => updateService(service.id, "price", e.target.value)} /></div>
+                          <div><label>Description</label><textarea value={service.description} onChange={(e) => updateService(service.id, "description", e.target.value)} /></div>
                         </div>
-                        <span className="badge">{service.price > 0 ? formatMoney(service.price) : "Quote"}</span>
+                        <div className="btnRow"><button className="btn danger" onClick={() => removeService(service.id)}>Remove</button></div>
                       </div>
-                      <p className="muted">{service.description}</p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h2 className="sectionTitle">Add New Service</h2>
+                  <div className="stack">
+                    <div><label>Name</label><input value={serviceDraft.name} onChange={(e) => setServiceDraft((p) => ({ ...p, name: e.target.value }))} /></div>
+                    <div><label>Category</label><input value={serviceDraft.category} onChange={(e) => setServiceDraft((p) => ({ ...p, category: e.target.value }))} /></div>
+                    <div><label>Price</label><input type="number" value={serviceDraft.price} onChange={(e) => setServiceDraft((p) => ({ ...p, price: Number(e.target.value) }))} /></div>
+                    <div><label>Description</label><textarea value={serviceDraft.description} onChange={(e) => setServiceDraft((p) => ({ ...p, description: e.target.value }))} /></div>
+                    <button className="btn" onClick={addService}>Add Service</button>
+                  </div>
                 </div>
               </div>
             )}
@@ -675,7 +782,6 @@ function App() {
                           <div><strong>Date:</strong> {selectedOrder.date}</div>
                         </div>
                       </div>
-
                       <table>
                         <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Total</th></tr></thead>
                         <tbody>
@@ -684,13 +790,11 @@ function App() {
                           ))}
                         </tbody>
                       </table>
-
                       <div className="totalsBox">
                         <div className="rowBetween"><span>Total</span><strong>{formatMoney(calcTotals(selectedOrder).subtotal)}</strong></div>
                         <div className="rowBetween"><span>Paid</span><strong>{formatMoney(calcTotals(selectedOrder).paid)}</strong></div>
                         <div className="rowBetween"><span>Balance</span><strong>{formatMoney(calcTotals(selectedOrder).balance)}</strong></div>
                       </div>
-
                       <div className="btnRow" style={{ marginTop: 16 }}>
                         <button className="btn" onClick={() => copyOrderText(selectedOrder)}>Copy Invoice Text</button>
                         <a className="ghostBtn" href={whatsappLink(selectedOrder)} target="_blank" rel="noreferrer">Send via WhatsApp</a>
@@ -702,13 +806,60 @@ function App() {
             )}
 
             {adminTab === "settings" && (
-              <div className="card">
-                <h2 className="sectionTitle">Settings</h2>
-                <div className="stack">
-                  <div className="statMini"><div className="muted">Business Address</div><div className="statNum" style={{ fontSize: "1rem" }}>{state.business.address}</div></div>
-                  <div className="statMini"><div className="muted">WhatsApp</div><div className="statNum" style={{ fontSize: "1rem" }}>wa.me/{WHATSAPP_NUMBER}</div></div>
-                  <p className="muted">This is the admin dashboard. Customers should mostly use Public View.</p>
-                  <p className="muted">For the exact PHANTHOM logo in the browser tab/favicon, upload the real logo file and replace the default app icon in your repo.</p>
+              <div className="settingsGrid">
+                <div className="card">
+                  <h2 className="sectionTitle">Customer Return Receipt</h2>
+                  <div className="stack">
+                    <div>
+                      <label>Original Order</label>
+                      <select value={returnForm.orderId} onChange={(e) => setReturnForm((p) => ({ ...p, orderId: e.target.value }))}>
+                        <option value="">Select order</option>
+                        {state.orders.map((order) => (
+                          <option key={order.id} value={order.id}>{order.orderNumber} - {order.customerName}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div><label>Customer Name</label><input value={returnForm.customerName} onChange={(e) => setReturnForm((p) => ({ ...p, customerName: e.target.value }))} /></div>
+                    <div><label>Date</label><input type="date" value={returnForm.date} onChange={(e) => setReturnForm((p) => ({ ...p, date: e.target.value }))} /></div>
+                    <div><label>Refund Amount</label><input type="number" value={returnForm.refundAmount} onChange={(e) => setReturnForm((p) => ({ ...p, refundAmount: Number(e.target.value) }))} /></div>
+                    <div><label>Reason</label><textarea value={returnForm.reason} onChange={(e) => setReturnForm((p) => ({ ...p, reason: e.target.value }))} /></div>
+                    <button className="btn" onClick={createReturnReceipt}>Create Return Receipt</button>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h2 className="sectionTitle">Return Receipt Preview</h2>
+                  {selectedReturnOrder && (
+                    <div className="preview">
+                      <div className="brandWrap">
+                        <div className="logoMark" style={{ width: 52, height: 52, fontSize: "1.5rem" }}>P</div>
+                        <div>
+                          <h3 style={{ margin: 0 }}>{state.business.name}</h3>
+                          <p className="muted">Customer Return Receipt</p>
+                          <p className="muted">{state.business.address}</p>
+                        </div>
+                      </div>
+                      <div className="stack" style={{ marginTop: 16 }}>
+                        <div className="rowBetween"><span>Customer</span><strong>{returnForm.customerName || selectedReturnOrder.customerName}</strong></div>
+                        <div className="rowBetween"><span>Original Order</span><strong>{selectedReturnOrder.orderNumber}</strong></div>
+                        <div className="rowBetween"><span>Refund Amount</span><strong>{formatMoney(returnForm.refundAmount)}</strong></div>
+                        <div className="rowBetween"><span>Date</span><strong>{returnForm.date}</strong></div>
+                        <div><strong>Reason:</strong> <span className="muted">{returnForm.reason || "Not specified"}</span></div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="stack" style={{ marginTop: 16 }}>
+                    {state.returnReceipts.map((receipt) => (
+                      <div key={receipt.id} className="serviceCard">
+                        <div className="rowBetween">
+                          <strong>{receipt.receiptNumber}</strong>
+                          <span className="badge">{formatMoney(receipt.refundAmount)}</span>
+                        </div>
+                        <div className="muted small">{receipt.customerName} • {receipt.date}</div>
+                        <div className="btnRow"><button className="btn dark" onClick={() => copyReturnReceipt(receipt)}>Copy Return Receipt</button></div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
