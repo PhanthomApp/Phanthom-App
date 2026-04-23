@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import logo from "./logo.png";
 
 const STORAGE_KEY = "phanthom-public-admin-v3";
 const WHATSAPP_NUMBER = "5978363552";
@@ -431,19 +432,62 @@ function App() {
       .map((line) => `${line.item} | Qty: ${line.qty} | Unit: ${formatMoney(line.price)} | Total: ${formatMoney(line.qty * line.price)}`)
       .join("\n");
 
-    const text = `${state.business.name}\n${state.business.slogan}\n${state.business.address}\n\nINVOICE: ${order.invoiceNumber}\nRECEIPT: ${order.receiptNumber}\nORDER: ${order.orderNumber}\n\nCustomer: ${order.customerName}\nPhone: ${order.phone || "N/A"}\nDate: ${order.date}\nPayment Method: ${order.paymentMethod}\n\n${lines}\n\nOrder Total: ${formatMoney(totals.subtotal)}\nAmount Paid: ${formatMoney(totals.paid)}\nRemaining Balance: ${formatMoney(totals.balance)}\nStatus: ${totals.status}`;
+    const text = `${state.business.name}
+${state.business.slogan}
+${state.business.address}
+
+INVOICE: ${order.invoiceNumber}
+RECEIPT: ${order.receiptNumber}
+ORDER: ${order.orderNumber}
+
+Customer: ${order.customerName}
+Phone: ${order.phone || "N/A"}
+Date: ${order.date}
+Payment Method: ${order.paymentMethod}
+
+${lines}
+
+Order Total: ${formatMoney(totals.subtotal)}
+Amount Paid: ${formatMoney(totals.paid)}
+Remaining Balance: ${formatMoney(totals.balance)}
+Status: ${totals.status}`;
     navigator.clipboard.writeText(text).catch(() => {});
   }
 
   function copyReturnReceipt(receipt) {
-    const text = `${state.business.name}\nCUSTOMER RETURN RECEIPT\n${receipt.receiptNumber}\n\nCustomer: ${receipt.customerName}\nDate: ${receipt.date}\nOrder Ref: ${receipt.orderId}\nRefund Amount: ${formatMoney(receipt.refundAmount)}\nReason: ${receipt.reason || "Not specified"}\n\nAddress: ${state.business.address}\nWhatsApp: wa.me/${WHATSAPP_NUMBER}`;
+    const text = `${state.business.name}
+CUSTOMER RETURN RECEIPT
+${receipt.receiptNumber}
+
+Customer: ${receipt.customerName}
+Date: ${receipt.date}
+Order Ref: ${receipt.orderId}
+Refund Amount: ${formatMoney(receipt.refundAmount)}
+Reason: ${receipt.reason || "Not specified"}
+
+Address: ${state.business.address}
+WhatsApp: wa.me/${WHATSAPP_NUMBER}`;
     navigator.clipboard.writeText(text).catch(() => {});
   }
 
   function whatsappLink(order) {
     const totals = calcTotals(order);
     const lines = order.items.map((line) => `- ${line.item} x${line.qty} @ ${formatMoney(line.price)}`).join("\n");
-    const text = `Hello ${order.customerName},\n\nInvoice: ${order.invoiceNumber}\nReceipt: ${order.receiptNumber}\nOrder: ${order.orderNumber}\n\nItems:\n${lines}\n\nTotal: ${formatMoney(totals.subtotal)}\nPaid: ${formatMoney(totals.paid)}\nBalance: ${formatMoney(totals.balance)}\nStatus: ${totals.status}\n\n- ${state.business.name}`;
+    const text = `Hello ${order.customerName},
+
+Invoice: ${order.invoiceNumber}
+Receipt: ${order.receiptNumber}
+Order: ${order.orderNumber}
+
+Items:
+${lines}
+
+Total: ${formatMoney(totals.subtotal)}
+Paid: ${formatMoney(totals.paid)}
+Balance: ${formatMoney(totals.balance)}
+Status: ${totals.status}
+
+- ${state.business.name}`;
     return `https://wa.me/${sanitizePhone(order.phone || state.business.whatsapp)}?text=${encodeURIComponent(text)}`;
   }
 
@@ -461,7 +505,8 @@ function App() {
         a{text-decoration:none;color:inherit} button,input,select,textarea{font:inherit}
         .shell{max-width:1400px;margin:0 auto;padding:24px}
         .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px;position:sticky;top:0;z-index:20;background:rgba(5,5,5,.82);backdrop-filter:blur(14px);padding:12px 0}
-        .brandWrap{display:flex;align-items:center;gap:14px}.logoMark{width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,#ffd400,#f0b400 55%,#fff2a8);color:#000;display:grid;place-items:center;font-size:1.8rem;font-weight:900;box-shadow:0 0 32px rgba(255,212,0,.25)}
+        .brandWrap{display:flex;align-items:center;gap:14px}
+        .brandLogo{width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 0 18px rgba(255,212,0,.18))}
         .brandText{display:grid;gap:2px}.brandTitle{font-weight:900;letter-spacing:.04em;font-size:1.25rem}.brandSub{color:#d0d0d0;font-size:.9rem}
         .modeRow,.navRow,.btnRow,.pillRow{display:flex;flex-wrap:wrap;gap:10px}
         .modeBtn,.tabBtn,.pill,.btn,.ghostBtn{border:1px solid #3a3200;border-radius:14px;padding:12px 16px;font-weight:800;cursor:pointer;transition:.28s ease}
@@ -503,7 +548,7 @@ function App() {
       <div className="shell fadeIn">
         <div className="topbar">
           <div className="brandWrap">
-            <div className="logoMark">P</div>
+            <img src={logo} alt="PHANTHOM logo" className="brandLogo" />
             <div className="brandText">
               <div className="brandTitle">PHANTHOM Official</div>
               <div className="brandSub">The Authorized Crew.</div>
@@ -535,7 +580,7 @@ function App() {
                 <div className="statMini"><div className="muted">Core Services</div><div className="statNum">{state.services.length}</div></div>
                 <div className="statMini"><div className="muted">WhatsApp Orders</div><div className="statNum">+597 8363552</div></div>
                 <div className="quickContact">
-                  <div className="logoMark" style={{ width: 46, height: 46, fontSize: "1.3rem" }}>W</div>
+                  <img src={logo} alt="PHANTHOM logo" className="brandLogo" style={{ width: 46, height: 46 }} />
                   <div>
                     <strong>Quick Order Contact</strong>
                     <div className="muted small">wa.me/{WHATSAPP_NUMBER}</div>
@@ -768,7 +813,7 @@ function App() {
                     <div className="preview">
                       <div className="rowBetween" style={{ alignItems: "flex-start" }}>
                         <div className="brandWrap">
-                          <div className="logoMark" style={{ width: 52, height: 52, fontSize: "1.5rem" }}>P</div>
+                          <img src={logo} alt="PHANTHOM logo" className="brandLogo" style={{ width: 52, height: 52 }} />
                           <div>
                             <h3 style={{ margin: 0 }}>{state.business.name}</h3>
                             <p className="muted">{state.business.slogan}</p>
@@ -832,7 +877,7 @@ function App() {
                   {selectedReturnOrder && (
                     <div className="preview">
                       <div className="brandWrap">
-                        <div className="logoMark" style={{ width: 52, height: 52, fontSize: "1.5rem" }}>P</div>
+                        <img src={logo} alt="PHANTHOM logo" className="brandLogo" style={{ width: 52, height: 52 }} />
                         <div>
                           <h3 style={{ margin: 0 }}>{state.business.name}</h3>
                           <p className="muted">Customer Return Receipt</p>
